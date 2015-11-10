@@ -24,7 +24,7 @@ feedlist=['http://rss.cnn.com/rss/cnn_allpolitics.rss',
           'http://www.ft.com/rss/home/us',
           'http://www.economist.com/sections/business-finance/rss.xml',
           'http://www.economist.com/sections/science-technology/rss.xml']
-#stripHTML can remove html tags 
+#stripHTML can remove html tags and this function comes from collective intelligence programming
 def stripHTML(h):
   p=''
   s=0
