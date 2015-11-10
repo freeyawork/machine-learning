@@ -1,0 +1,104 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Nov  9 17:19:58 2015
+
+@author: freeya
+"""
+import feedparser
+#import re
+feedlist=['http://rss.cnn.com/rss/cnn_allpolitics.rss',
+          'http://rss.cnn.com/rss/money_latest.rss',
+          'http://money.cnn.com/services/rss/',
+          'http://rss.nytimes.com/services/xml/rss/nyt/World.xml',
+          'http://www.ft.com/intl/global-economy',
+          'http://rss.nytimes.com/services/xml/rss/nyt/Business.xml',
+          'http://rss.nytimes.com/services/xml/rss/nyt/Sports.xml',
+          'http://rss.nytimes.com/services/xml/rss/nyt/Technology.xml',
+          'http://rss.nytimes.com/services/xml/rss/nyt/NYRegion.xml',
+          'http://www.wsj.com/xml/rss/3_7085.xml',
+          'http://www.wsj.com/xml/rss/3_7014.xml',
+          'http://www.wsj.com/xml/rss/3_7455.xml',
+          'http://www.wsj.com/xml/rss/3_7201.xml'
+          'http://www.chinadaily.com.cn/rss/world_rss.xml',
+          'http://www.chinadaily.com.cn/rss/bizchina_rss.xml',
+          'http://www.ft.com/rss/home/us',
+          'http://www.economist.com/sections/business-finance/rss.xml',
+          'http://www.economist.com/sections/science-technology/rss.xml']
+#stripHTML can remove html tags 
+def stripHTML(h):
+  p=''
+  s=0
+  for c in h:
+    if c=='<': s=1
+    elif c=='>':
+      s=0
+      p+=' '
+    elif s==0: p+=c
+  return p
+
+
+def getarticletitles(feedlist):
+  articletitles=[]
+  # Loop over every feed 
+  for feed in feedlist:
+    f=feedparser.parse(feed)
+    print('one loop start\n')
+    # Loop over every article
+    for e in f.entries:
+      # Ignore identical articles
+      print(e)
+      if e.title in articletitles: continue
+      articletitles.append(e.title)
+      print(e.title)
+  return articletitles
+if '__name__==__main__':
+    articletitles=getarticletitles(feedlist)
+#docmat is a feature mat
+from sklearn.feature_extraction.text import TfidfVectorizer
+vectorizer = TfidfVectorizer(min_df=1)
+docmatsparse=vectorizer.fit_transform(articletitles)
+docmat=docmatsparse.toarray()
+
+from matplotlib import pyplot as plt
+import numpy as np
+from time import time
+from sklearn import manifold
+def plot_clustering(X_red, X, labels, title=None):
+    x_min, x_max = np.min(X_red, axis=0), np.max(X_red, axis=0)
+    X_red = (X_red - x_min) / (x_max - x_min)#normalize to range of (0,1)
+    plt.figure(figsize=(6, 4))
+    for i in range(X_red.shape[0]):
+        plt.text(X_red[i, 0], X_red[i, 1], str(labels[i]),
+                 color=plt.cm.spectral(labels[i] / 10.),
+                 fontdict={'weight': 'bold', 'size': 9})
+
+    plt.xticks([])
+    plt.yticks([])
+    if title is not None:
+        plt.title(title, size=17)
+    plt.axis('off')
+    plt.tight_layout()
+
+#----------------------------------------------------------------------
+# 2D embedding of the digits dataset
+#manifold.SpectralEmbedding reaslized non-linear dimension reducton,u can determine the target dimensions via n_components.
+print("Computing embedding")
+X_red = manifold.SpectralEmbedding(n_components=2).fit_transform(docmat)
+print("Done.")
+
+from sklearn import cluster
+
+#hierarchical clustering
+for linkage in ('ward', 'average', 'complete'):
+    clustering = cluster.AgglomerativeClustering(linkage=linkage, n_clusters=5)
+    #clustering.
+    t0 = time()
+    clustering.fit(X_red)
+    clustering.labels_
+    print("%s : %.2fs" % (linkage, time() - t0))
+
+    plot_clustering(X_red, docmat, clustering.labels_, "%s linkage" % linkage)
+
+
+
+plt.show()
