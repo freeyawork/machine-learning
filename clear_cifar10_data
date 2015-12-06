@@ -1,0 +1,29 @@
+def unpickle(file):
+    import cPickle
+    fo = open(file, 'rb')
+    dict = cPickle.load(fo)
+    fo.close()
+    return dict
+    
+part1=unpickle('f:/cifar-10-batches-py/data_batch_1')
+part2=unpickle('f:/cifar-10-batches-py/data_batch_2')
+part3=unpickle('f:/cifar-10-batches-py/data_batch_3')
+part4=unpickle('f:/cifar-10-batches-py/data_batch_4')
+part5=unpickle('f:/cifar-10-batches-py/data_batch_5')
+part6=unpickle('f:/cifar-10-batches-py/test_batch')
+#get train data and test data
+ori_train_data=np.vstack([part1['data'],part2['data'],part3['data'],part4['data'],part5['data']])
+ori_test_data=part6['data']#.astype(np.float32)
+#get imgnames of train data and test data
+train_imgnames=np.array([part1['filenames'],part2['filenames'],part3['filenames'],part4['filenames'],part5['filenames']]).ravel()
+test_imgnames=part6['filenames']
+train_label=np.hstack([part1['labels'],part2['labels'],part3['labels'],part4['labels'],part5['labels']])
+test_label=part6['labels']
+#get 
+
+train_data=[]
+for i in range(ori_train_data.shape[0]):
+    train_data.append(cv2.cvtColor(np.array([np.hsplit(ori_train_data[i],3)]).reshape(32,32,3),cv2.COLOR_BGR2GRAY))
+test_data=[]
+for i in range(ori_test_data.shape[0]):
+    test_data.append(cv2.cvtColor(np.array([np.hsplit(ori_test_data[i],3)]).reshape(32,32,3),cv2.COLOR_BGR2GRAY))
