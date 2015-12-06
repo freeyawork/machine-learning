@@ -13,13 +13,6 @@ from time import time
 import scipy.cluster.vq as vq
 from sklearn.svm import SVC
 
-
-def unpickle(file):
-    import cPickle
-    fo = open(file, 'rb')
-    dict = cPickle.load(fo)
-    fo.close()
-    return dict
 def computeHistograms(codebook, descriptors):
     code, dist = vq.vq(descriptors, codebook)
     histogram_of_words, bin_edges = np.histogram(code,
