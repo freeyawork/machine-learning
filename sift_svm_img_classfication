@@ -1,0 +1,84 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Dec 06 14:24:54 2015
+
+@author: freeya Wang
+inspired by  shackenberg/Minimal-Bag-of-Visual-Words-Image-Classifier
+this code presumes at least one keypoints can be extracted from original gray image and not discarded by opencv function threshold.
+"""
+
+import numpy as np
+import cv2
+from time import time
+import scipy.cluster.vq as vq
+from sklearn.svm import SVC
+
+
+def unpickle(file):
+    import cPickle
+    fo = open(file, 'rb')
+    dict = cPickle.load(fo)
+    fo.close()
+    return dict
+def computeHistograms(codebook, descriptors):
+    code, dist = vq.vq(descriptors, codebook)
+    histogram_of_words, bin_edges = np.histogram(code,
+                                              bins=range(codebook.shape[0] + 1),
+                                              density=True)
+    return histogram_of_words
+    #get every sift features for each img
+def sift_svm(train_data,train_label,test_data_label):        
+    sift=cv2.SIFT()
+    descriptors=[]
+    locs=[]
+    for i in range(len(train_data)):
+        kp=sift.detect(train_data[i],None)
+        kp,int_descriptors=sift.compute(train_data[i],kp)
+        descriptors.append(int_descriptors)
+        locs.append([i.pt for i in kp])
+    
+    feature_index=0
+    for i in descriptors:   
+        feature_index+=i.shape[0]
+    all_features=np.zeros((feature_index,128))
+    index=0    
+    for i in descriptors:  
+        all_features[index:index+i.shape[0]]=i
+        index=index+i.shape[0]
+    #use k means to get a codebook
+    nfeatures = all_features.shape[0]
+    nclusters = int(np.sqrt(nfeatures))  
+    from sklearn.cluster import KMeans
+    kmeans = KMeans(nclusters,'k-means++')
+    kmeans.fit(all_features)
+    codebook=kmeans.cluster_centers_   
+    
+    hist_train_data=np.zeros(shape=(len(descriptors),codebook.shape[0]))
+    for i in range(len(descriptors)):
+        hist_train_data[i]=computeHistograms(codebook,descriptors)
+    #start training svm
+    clf = SVC()
+    param_grid = {'C': [1e3, 5e3, 1e4, 5e4, 1e5],            
+                  'gamma': [0.0001, 0.0005, 0.001, 0.005, 0.01]}
+                  #'kernel':['linear', 'poly', 'rbf', 'sigmoid'],
+    from sklearn.grid_search import GridSearchCV
+    t0 = time()
+    clf = GridSearchCV(SVC(kernel='linear', class_weight=None), param_grid)
+    clf = clf.fit(hist_train_data,train_label)
+    
+    print("searching the best estimator and training done in %0.3fs" % (time() - t0))
+    print("Best estimator found by grid search:")
+    print(clf.best_estimator_)
+    #now get test descriptors
+    hist_test_data=np.zeros(len(test_data,128))
+    for i in range(len(test_data)):
+        kp=sift.detect(test_data[i],None)
+        kp,test_descriptors=sift.compute(test_data[i],kp)
+        hist_test_data[i]=computeHistograms(codebook,test_descriptors)
+    #now predicting
+    t0 = time()
+    y_pred = clf.predict(test_data)
+    print("predicting done in %0.3fs" % (time() - t0))
+    mask=y_pred.T==test_label
+    correct=np.count_nonzero(mask) 
+    print correct*100.0/y_pred.size
